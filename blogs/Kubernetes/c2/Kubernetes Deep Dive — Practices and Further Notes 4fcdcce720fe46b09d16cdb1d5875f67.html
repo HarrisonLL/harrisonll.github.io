@@ -1,0 +1,720 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>Kubernetes Deep Dive — Practices and Further Notes</title><style>
+/* cspell:disable-file */
+/* webkit printing magic: print all background colors */
+html {
+	-webkit-print-color-adjust: exact;
+}
+* {
+	box-sizing: border-box;
+	-webkit-print-color-adjust: exact;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+@media only screen {
+	body {
+		margin: 2em auto;
+		max-width: 900px;
+		color: rgb(55, 53, 47);
+	}
+}
+
+body {
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+a,
+a.visited {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.pdf-relative-link-path {
+	font-size: 80%;
+	color: #444;
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+.page-title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin-top: 0;
+	margin-bottom: 0.75em;
+}
+
+h1 {
+	font-size: 1.875rem;
+	margin-top: 1.875rem;
+}
+
+h2 {
+	font-size: 1.5rem;
+	margin-top: 1.5rem;
+}
+
+h3 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.source {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 1.5em;
+	word-break: break-all;
+}
+
+.callout {
+	border-radius: 3px;
+	padding: 1rem;
+}
+
+figure {
+	margin: 1.25em 0;
+	page-break-inside: avoid;
+}
+
+figcaption {
+	opacity: 0.5;
+	font-size: 85%;
+	margin-top: 0.5em;
+}
+
+mark {
+	background-color: transparent;
+}
+
+.indented {
+	padding-left: 1.5em;
+}
+
+hr {
+	background: transparent;
+	display: block;
+	width: 100%;
+	height: 1px;
+	visibility: visible;
+	border: none;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+img {
+	max-width: 100%;
+}
+
+@media only print {
+	img {
+		max-height: 100vh;
+		object-fit: contain;
+	}
+}
+
+@page {
+	margin: 1in;
+}
+
+.collection-content {
+	font-size: 0.875rem;
+}
+
+.column-list {
+	display: flex;
+	justify-content: space-between;
+}
+
+.column {
+	padding: 0 1em;
+}
+
+.column:first-child {
+	padding-left: 0;
+}
+
+.column:last-child {
+	padding-right: 0;
+}
+
+.table_of_contents-item {
+	display: block;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	padding: 0.125rem;
+}
+
+.table_of_contents-indent-1 {
+	margin-left: 1.5rem;
+}
+
+.table_of_contents-indent-2 {
+	margin-left: 3rem;
+}
+
+.table_of_contents-indent-3 {
+	margin-left: 4.5rem;
+}
+
+.table_of_contents-link {
+	text-decoration: none;
+	opacity: 0.7;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.18);
+}
+
+table,
+th,
+td {
+	border: 1px solid rgba(55, 53, 47, 0.09);
+	border-collapse: collapse;
+}
+
+table {
+	border-left: none;
+	border-right: none;
+}
+
+th,
+td {
+	font-weight: normal;
+	padding: 0.25em 0.5em;
+	line-height: 1.5;
+	min-height: 1.5em;
+	text-align: left;
+}
+
+th {
+	color: rgba(55, 53, 47, 0.6);
+}
+
+ol,
+ul {
+	margin: 0;
+	margin-block-start: 0.6em;
+	margin-block-end: 0.6em;
+}
+
+li > ol:first-child,
+li > ul:first-child {
+	margin-block-start: 0.6em;
+}
+
+ul > li {
+	list-style: disc;
+}
+
+ul.to-do-list {
+	padding-inline-start: 0;
+}
+
+ul.to-do-list > li {
+	list-style: none;
+}
+
+.to-do-children-checked {
+	text-decoration: line-through;
+	opacity: 0.375;
+}
+
+ul.toggle > li {
+	list-style: none;
+}
+
+ul {
+	padding-inline-start: 1.7em;
+}
+
+ul > li {
+	padding-left: 0.1em;
+}
+
+ol {
+	padding-inline-start: 1.6em;
+}
+
+ol > li {
+	padding-left: 0.2em;
+}
+
+.mono ol {
+	padding-inline-start: 2em;
+}
+
+.mono ol > li {
+	text-indent: -0.4em;
+}
+
+.toggle {
+	padding-inline-start: 0em;
+	list-style-type: none;
+}
+
+/* Indent toggle children */
+.toggle > li > details {
+	padding-left: 1.7em;
+}
+
+.toggle > li > details > summary {
+	margin-left: -1.1em;
+}
+
+.selected-value {
+	display: inline-block;
+	padding: 0 0.5em;
+	background: rgba(206, 205, 202, 0.5);
+	border-radius: 3px;
+	margin-right: 0.5em;
+	margin-top: 0.3em;
+	margin-bottom: 0.3em;
+	white-space: nowrap;
+}
+
+.collection-title {
+	display: inline-block;
+	margin-right: 1em;
+}
+
+.page-description {
+    margin-bottom: 2em;
+}
+
+.simple-table {
+	margin-top: 1em;
+	font-size: 0.875rem;
+	empty-cells: show;
+}
+.simple-table td {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table th {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table-header-color {
+	background: rgb(247, 246, 243);
+	color: black;
+}
+.simple-table-header {
+	font-weight: 500;
+}
+
+time {
+	opacity: 0.5;
+}
+
+.icon {
+	display: inline-block;
+	max-width: 1.2em;
+	max-height: 1.2em;
+	text-decoration: none;
+	vertical-align: text-bottom;
+	margin-right: 0.5em;
+}
+
+img.icon {
+	border-radius: 3px;
+}
+
+.user-icon {
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 100%;
+	margin-right: 0.5rem;
+}
+
+.user-icon-inner {
+	font-size: 0.8em;
+}
+
+.text-icon {
+	border: 1px solid #000;
+	text-align: center;
+}
+
+.page-cover-image {
+	display: block;
+	object-fit: cover;
+	width: 100%;
+	max-height: 30vh;
+}
+
+.page-header-icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+}
+
+.page-header-icon-with-cover {
+	margin-top: -0.72em;
+	margin-left: 0.07em;
+}
+
+.page-header-icon img {
+	border-radius: 3px;
+}
+
+.link-to-page {
+	margin: 1em 0;
+	padding: 0;
+	border: none;
+	font-weight: 500;
+}
+
+p > .user {
+	opacity: 0.5;
+}
+
+td > .user,
+td > time {
+	white-space: nowrap;
+}
+
+input[type="checkbox"] {
+	transform: scale(1.5);
+	margin-right: 0.6em;
+	vertical-align: middle;
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.image {
+	border: none;
+	margin: 1.5em 0;
+	padding: 0;
+	border-radius: 0;
+	text-align: center;
+}
+
+.code,
+code {
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 85%;
+	tab-size: 2;
+}
+
+code {
+	color: #eb5757;
+}
+
+.code {
+	padding: 1.5em 1em;
+}
+
+.code-wrap {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.code > code {
+	background: none;
+	padding: 0;
+	font-size: 100%;
+	color: inherit;
+}
+
+blockquote {
+	font-size: 1.25em;
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 3px solid rgb(55, 53, 47);
+}
+
+.bookmark {
+	text-decoration: none;
+	max-height: 8em;
+	padding: 0;
+	display: flex;
+	width: 100%;
+	align-items: stretch;
+}
+
+.bookmark-title {
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	height: 1.75em;
+	white-space: nowrap;
+}
+
+.bookmark-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.bookmark-info {
+	flex: 4 1 180px;
+	padding: 12px 14px 14px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.bookmark-image {
+	width: 33%;
+	flex: 1 1 180px;
+	display: block;
+	position: relative;
+	object-fit: cover;
+	border-radius: 1px;
+}
+
+.bookmark-description {
+	color: rgba(55, 53, 47, 0.6);
+	font-size: 0.75em;
+	overflow: hidden;
+	max-height: 4.5em;
+	word-break: break-word;
+}
+
+.bookmark-href {
+	font-size: 0.75em;
+	margin-top: 0.25em;
+}
+
+.sans { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+.code { font-family: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace; }
+.serif { font-family: Lyon-Text, Georgia, ui-serif, serif; }
+.mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+.pdf .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK JP'; }
+.pdf:lang(zh-CN) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC'; }
+.pdf:lang(zh-TW) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK TC'; }
+.pdf:lang(ko-KR) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK KR'; }
+.pdf .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.pdf .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK JP'; }
+.pdf:lang(zh-CN) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK SC'; }
+.pdf:lang(zh-TW) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK TC'; }
+.pdf:lang(ko-KR) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK KR'; }
+.pdf .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.highlight-default {
+	color: rgba(55, 53, 47, 1);
+}
+.highlight-gray {
+	color: rgba(120, 119, 116, 1);
+	fill: rgba(120, 119, 116, 1);
+}
+.highlight-brown {
+	color: rgba(159, 107, 83, 1);
+	fill: rgba(159, 107, 83, 1);
+}
+.highlight-orange {
+	color: rgba(217, 115, 13, 1);
+	fill: rgba(217, 115, 13, 1);
+}
+.highlight-yellow {
+	color: rgba(203, 145, 47, 1);
+	fill: rgba(203, 145, 47, 1);
+}
+.highlight-teal {
+	color: rgba(68, 131, 97, 1);
+	fill: rgba(68, 131, 97, 1);
+}
+.highlight-blue {
+	color: rgba(51, 126, 169, 1);
+	fill: rgba(51, 126, 169, 1);
+}
+.highlight-purple {
+	color: rgba(144, 101, 176, 1);
+	fill: rgba(144, 101, 176, 1);
+}
+.highlight-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.highlight-red {
+	color: rgba(212, 76, 71, 1);
+	fill: rgba(212, 76, 71, 1);
+}
+.highlight-gray_background {
+	background: rgba(241, 241, 239, 1);
+}
+.highlight-brown_background {
+	background: rgba(244, 238, 238, 1);
+}
+.highlight-orange_background {
+	background: rgba(251, 236, 221, 1);
+}
+.highlight-yellow_background {
+	background: rgba(251, 243, 219, 1);
+}
+.highlight-teal_background {
+	background: rgba(237, 243, 236, 1);
+}
+.highlight-blue_background {
+	background: rgba(231, 243, 248, 1);
+}
+.highlight-purple_background {
+	background: rgba(244, 240, 247, 0.8);
+}
+.highlight-pink_background {
+	background: rgba(249, 238, 243, 0.8);
+}
+.highlight-red_background {
+	background: rgba(253, 235, 236, 1);
+}
+.block-color-default {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray {
+	color: rgba(120, 119, 116, 1);
+	fill: rgba(120, 119, 116, 1);
+}
+.block-color-brown {
+	color: rgba(159, 107, 83, 1);
+	fill: rgba(159, 107, 83, 1);
+}
+.block-color-orange {
+	color: rgba(217, 115, 13, 1);
+	fill: rgba(217, 115, 13, 1);
+}
+.block-color-yellow {
+	color: rgba(203, 145, 47, 1);
+	fill: rgba(203, 145, 47, 1);
+}
+.block-color-teal {
+	color: rgba(68, 131, 97, 1);
+	fill: rgba(68, 131, 97, 1);
+}
+.block-color-blue {
+	color: rgba(51, 126, 169, 1);
+	fill: rgba(51, 126, 169, 1);
+}
+.block-color-purple {
+	color: rgba(144, 101, 176, 1);
+	fill: rgba(144, 101, 176, 1);
+}
+.block-color-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.block-color-red {
+	color: rgba(212, 76, 71, 1);
+	fill: rgba(212, 76, 71, 1);
+}
+.block-color-gray_background {
+	background: rgba(241, 241, 239, 1);
+}
+.block-color-brown_background {
+	background: rgba(244, 238, 238, 1);
+}
+.block-color-orange_background {
+	background: rgba(251, 236, 221, 1);
+}
+.block-color-yellow_background {
+	background: rgba(251, 243, 219, 1);
+}
+.block-color-teal_background {
+	background: rgba(237, 243, 236, 1);
+}
+.block-color-blue_background {
+	background: rgba(231, 243, 248, 1);
+}
+.block-color-purple_background {
+	background: rgba(244, 240, 247, 0.8);
+}
+.block-color-pink_background {
+	background: rgba(249, 238, 243, 0.8);
+}
+.block-color-red_background {
+	background: rgba(253, 235, 236, 1);
+}
+.select-value-color-interactiveBlue { background-color: rgba(35, 131, 226, .07); }
+.select-value-color-pink { background-color: rgba(245, 224, 233, 1); }
+.select-value-color-purple { background-color: rgba(232, 222, 238, 1); }
+.select-value-color-green { background-color: rgba(219, 237, 219, 1); }
+.select-value-color-gray { background-color: rgba(227, 226, 224, 1); }
+.select-value-color-translucentGray { background-color: rgba(255, 255, 255, 0.0375); }
+.select-value-color-orange { background-color: rgba(250, 222, 201, 1); }
+.select-value-color-brown { background-color: rgba(238, 224, 218, 1); }
+.select-value-color-red { background-color: rgba(255, 226, 221, 1); }
+.select-value-color-yellow { background-color: rgba(253, 236, 200, 1); }
+.select-value-color-blue { background-color: rgba(211, 229, 239, 1); }
+.select-value-color-pageGlass { background-color: undefined; }
+.select-value-color-washGlass { background-color: undefined; }
+
+.checkbox {
+	display: inline-flex;
+	vertical-align: text-bottom;
+	width: 16;
+	height: 16;
+	background-size: 16px;
+	margin-left: 2px;
+	margin-right: 5px;
+}
+
+.checkbox-on {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+
+.checkbox-off {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+	
+</style></head><body><article id="4fcdcce7-20fe-46b0-9d16-cdb1d5875f67" class="page sans"><header><h1 class="page-title">Kubernetes Deep Dive — Practices and Further Notes</h1><p class="page-description"></p><table class="properties"><tbody><tr class="property-row property-row-last_edited_time"><th><span class="icon property-icon"><svg viewBox="0 0 16 16" style="width:14px;height:14px;display:block;fill:rgba(55, 53, 47, 0.45);flex-shrink:0;-webkit-backface-visibility:hidden" class="typesCreatedAt"><path d="M8 15.126C11.8623 15.126 15.0615 11.9336 15.0615 8.06445C15.0615 4.20215 11.8623 1.00293 7.99316 1.00293C4.13086 1.00293 0.938477 4.20215 0.938477 8.06445C0.938477 11.9336 4.1377 15.126 8 15.126ZM8 13.7383C4.85547 13.7383 2.33301 11.209 2.33301 8.06445C2.33301 4.91992 4.84863 2.39746 7.99316 2.39746C11.1377 2.39746 13.6738 4.91992 13.6738 8.06445C13.6738 11.209 11.1445 13.7383 8 13.7383ZM4.54102 8.91211H7.99316C8.30078 8.91211 8.54004 8.67285 8.54004 8.37207V3.8877C8.54004 3.58691 8.30078 3.34766 7.99316 3.34766C7.69238 3.34766 7.45312 3.58691 7.45312 3.8877V7.83203H4.54102C4.2334 7.83203 4.00098 8.06445 4.00098 8.37207C4.00098 8.67285 4.2334 8.91211 4.54102 8.91211Z"></path></svg></span>Last Edited</th><td><time>@June 28, 2023 10:24 PM</time></td></tr><tr class="property-row property-row-multi_select"><th><span class="icon property-icon"><svg viewBox="0 0 16 16" style="width:14px;height:14px;display:block;fill:rgba(55, 53, 47, 0.45);flex-shrink:0;-webkit-backface-visibility:hidden" class="typesMultipleSelect"><path d="M1.91602 4.83789C2.44238 4.83789 2.87305 4.40723 2.87305 3.87402C2.87305 3.34766 2.44238 2.91699 1.91602 2.91699C1.38281 2.91699 0.952148 3.34766 0.952148 3.87402C0.952148 4.40723 1.38281 4.83789 1.91602 4.83789ZM5.1084 4.52344H14.3984C14.7607 4.52344 15.0479 4.23633 15.0479 3.87402C15.0479 3.51172 14.7607 3.22461 14.3984 3.22461H5.1084C4.74609 3.22461 4.45898 3.51172 4.45898 3.87402C4.45898 4.23633 4.74609 4.52344 5.1084 4.52344ZM1.91602 9.03516C2.44238 9.03516 2.87305 8.60449 2.87305 8.07129C2.87305 7.54492 2.44238 7.11426 1.91602 7.11426C1.38281 7.11426 0.952148 7.54492 0.952148 8.07129C0.952148 8.60449 1.38281 9.03516 1.91602 9.03516ZM5.1084 8.7207H14.3984C14.7607 8.7207 15.0479 8.43359 15.0479 8.07129C15.0479 7.70898 14.7607 7.42188 14.3984 7.42188H5.1084C4.74609 7.42188 4.45898 7.70898 4.45898 8.07129C4.45898 8.43359 4.74609 8.7207 5.1084 8.7207ZM1.91602 13.2324C2.44238 13.2324 2.87305 12.8018 2.87305 12.2686C2.87305 11.7422 2.44238 11.3115 1.91602 11.3115C1.38281 11.3115 0.952148 11.7422 0.952148 12.2686C0.952148 12.8018 1.38281 13.2324 1.91602 13.2324ZM5.1084 12.918H14.3984C14.7607 12.918 15.0479 12.6309 15.0479 12.2686C15.0479 11.9062 14.7607 11.6191 14.3984 11.6191H5.1084C4.74609 11.6191 4.45898 11.9062 4.45898 12.2686C4.45898 12.6309 4.74609 12.918 5.1084 12.918Z"></path></svg></span>Tags</th><td></td></tr><tr class="property-row property-row-text"><th><span class="icon property-icon"><svg viewBox="0 0 16 16" style="width:14px;height:14px;display:block;fill:rgba(55, 53, 47, 0.45);flex-shrink:0;-webkit-backface-visibility:hidden" class="typesText"><path d="M1.56738 3.25879H14.4258C14.7676 3.25879 15.0479 2.97852 15.0479 2.63672C15.0479 2.29492 14.7744 2.02148 14.4258 2.02148H1.56738C1.21875 2.02148 0.952148 2.29492 0.952148 2.63672C0.952148 2.97852 1.22559 3.25879 1.56738 3.25879ZM1.56738 6.84082H14.4258C14.7676 6.84082 15.0479 6.56055 15.0479 6.21875C15.0479 5.87695 14.7744 5.60352 14.4258 5.60352H1.56738C1.21875 5.60352 0.952148 5.87695 0.952148 6.21875C0.952148 6.56055 1.22559 6.84082 1.56738 6.84082ZM1.56738 10.4229H14.4258C14.7676 10.4229 15.0479 10.1426 15.0479 9.80078C15.0479 9.45898 14.7744 9.18555 14.4258 9.18555H1.56738C1.21875 9.18555 0.952148 9.45898 0.952148 9.80078C0.952148 10.1426 1.22559 10.4229 1.56738 10.4229ZM1.56738 14.0049H8.75879C9.10059 14.0049 9.38086 13.7246 9.38086 13.3828C9.38086 13.041 9.10742 12.7676 8.75879 12.7676H1.56738C1.21875 12.7676 0.952148 13.041 0.952148 13.3828C0.952148 13.7246 1.22559 14.0049 1.56738 14.0049Z"></path></svg></span>study</th><td></td></tr></tbody></table></header><div class="page-body"><nav id="42cec0e9-d316-4228-823d-fb415e66f403" class="block-color-gray table_of_contents"><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#845b55eb-c6d0-4ed7-818e-2ce8c7abe38c">Start K8S</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#6092c1f4-70cd-4972-959b-8377ef9886a8">Pod, Deployment, Service</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#630b0632-8549-4a70-9aac-bd2351495edd">Deployment: </a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#338eee72-329b-4784-b922-917fc5b77dbe">Service:</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#37cb51d5-dd0b-419f-86a3-b3100d74b8a1">Practices:</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#480a1a0c-ecb7-494b-846d-42598e86a966">Service Discovery</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#964ccd4f-cbbf-41a8-83dc-c4783f93141d">Kubernetes Storage</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#e76c8120-25b7-466a-b85e-9ecd9a28369b">ConfigMap, StatefulSet, DaemonSet</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#b80904e0-39e1-479c-94e0-2c88627322a3">ConfigMap</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#50468f64-d8f9-4047-a5dc-80bbcaa17429">StatefulSet</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#dff92c08-92fc-4277-99c0-c38f38a88b85">DaemonSet</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#07af700d-2f1b-44fc-9694-ec717bf77461">Reference</a></div></nav><p id="5d4aeeef-b27f-458f-96c5-c031f9375433" class="">
+</p><h2 id="845b55eb-c6d0-4ed7-818e-2ce8c7abe38c" class="">Start K8S</h2><ul id="621e7a80-31ec-46a4-ac1e-197a85bad622" class="bulleted-list"><li style="list-style-type:disc"><a href="https://labs.play-with-k8s.com/">https://labs.play-with-k8s.com/</a><p id="6f70a013-9ff1-4f63-9f3c-15fe8d1d00b3" class="">login, create a session, and use remote server for 4 hours</p></li></ul><p id="5b335711-c750-4f96-813d-3a06393da3bf" class="">
+</p><p id="76afe1f5-8340-4861-9572-83eb12f610e7" class="">
+</p><p id="7d6c2907-d94c-4dd1-8037-3fa04822adac" class="">Create a cluster</p><pre id="3f92f20b-7dbc-4c37-a38d-56f3e390bb6d" class="code"><code># master node (need a new instance)
+kubeadm init --apiserver-advertise-address ...
+# use printout second command
+kubectl apply -f https://raw.githubusercon ...
+# verify master node ready
+kubectl get nodes
+
+# worker node (need a new instance)
+# copy and paste the output from the last kubeadm init command
+kubeadm join ...</code></pre><p id="e2460cbd-3545-4350-be1e-90d445ba96bf" class="">
+</p><figure id="5e8c857d-1609-4f20-9443-79c234167a6d" class="image"><a href="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Screen_Shot_2023-06-20_at_8.39.28_PM.png"><img style="width:481px" src="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Screen_Shot_2023-06-20_at_8.39.28_PM.png"/></a></figure><p id="ed1b4c3b-3bad-4bc6-9b89-0f656719ea38" class="">
+</p><ul id="ad7d99cf-ac6f-4c9b-a8ec-165ff6e6082a" class="bulleted-list"><li style="list-style-type:disc">Google Kubernetes Engine (GKE)<p id="8fdd0a75-58ab-4971-8ac6-a3966d5cbe36" class=""><a href="https://cloud.google.com/kubernetes-engine">https://cloud.google.com/kubernetes-engine</a></p></li></ul><p id="7372a7f9-972d-46d2-99f4-ed0a8ab8e626" class="">
+</p><p id="63100bc8-1f06-4c9d-9436-9ea82d2c6016" class="">
+</p><h2 id="6092c1f4-70cd-4972-959b-8377ef9886a8" class="">Pod, Deployment, Service</h2><h3 id="630b0632-8549-4a70-9aac-bd2351495edd" class="">Deployment: </h3><ul id="08ed7d8e-937d-45a1-95d9-1aeaef39f87b" class="bulleted-list"><li style="list-style-type:disc">features: scaling, self-healing, rolling update</li></ul><ul id="7b00b805-95a4-4c84-841e-5cffbba45fb1" class="bulleted-list"><li style="list-style-type:disc">rolling update: provides 0 downtimes, iteratively updates pods</li></ul><p id="9d48d883-4eec-48a2-89f0-145326cb6144" class="">
+</p><h3 id="338eee72-329b-4784-b922-917fc5b77dbe" class="">Service:</h3><ul id="72bd15c3-3eab-4286-b739-1bde46621733" class="bulleted-list"><li style="list-style-type:disc">typically in svc.yml, where states how the application is exposed to outside</li></ul><ul id="6c93140c-3989-4d32-b82e-7a64fc17b1c4" class="bulleted-list"><li style="list-style-type:disc">always has reliable DNS, IP, PORT</li></ul><ul id="bb5f8db0-c9f9-4ca7-91aa-6910293fc648" class="bulleted-list"><li style="list-style-type:disc">maintain a dynamic list of healthy pods (called endpoints), which the network will be directed to</li></ul><ul id="307e35de-ae87-4bb3-96f0-b8ecafc5f5e9" class="bulleted-list"><li style="list-style-type:disc"><code>ServiceTypes</code> : <code>ClusterIP</code> vs <code>NodePortService</code>: Internal communication vs external communication</li></ul><p id="75aed1d1-3794-4593-8517-46bbcf2180d9" class="">
+</p><p id="2364dc6f-d11d-4c09-9f17-b850576b0a01" class=""><em>Figure: NodePortService Redirection</em></p><figure id="acd276b6-f701-44f0-b933-b4c304ec3f79" class="image"><a href="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Screen_Shot_2023-06-19_at_11.29.17_PM.png"><img style="width:480px" src="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Screen_Shot_2023-06-19_at_11.29.17_PM.png"/></a></figure><h3 id="37cb51d5-dd0b-419f-86a3-b3100d74b8a1" class="">Practices:</h3><p id="20e7d21e-82f7-46d8-9957-63367e15983d" class="">
+</p><pre id="61af804e-e9af-4f8a-9931-9eb35297bec1" class="code"><code># ============ useful commands ===========
+# get pods on one node
+kubectl get pods --all-namespaces -o wide --field-selector spec.nodeName=&lt;node&gt;
+# see pods status: spec is the desired status, status is observed status
+kubectl get pods &lt;pod-name&gt; -o yaml
+# get rolling update status
+kubectl rollout status deployment &lt;deployment-name&gt;
+# get list of endpoint object
+kubectl get ep hello-svc</code></pre><figure id="e3c3d924-2e46-4ffc-a68a-c5ea93febc5e" class="image"><a href="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Untitled.png"><img style="width:672px" src="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Untitled.png"/></a></figure><p id="a1bf6823-3e89-4209-8e67-024ef2e950b1" class=""><em>Figure</em>: <em>I set 10 deploy object, which loads balance to two worker nodes, while the master node has most of the Kubernetes system running: etcd, API server, etc.</em></p><p id="f8fad93e-0cad-4eeb-866e-9b9c5ecd2f78" class="">
+</p><figure id="bdbe8293-f2f7-4d1b-8b9c-d883b5b1853a" class="image"><a href="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Screen_Shot_2023-06-20_at_10.02.04_PM.png"><img style="width:672px" src="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Screen_Shot_2023-06-20_at_10.02.04_PM.png"/></a></figure><p id="e5d5d1aa-3a83-4eb8-8c7f-dfc2b741a499" class=""><em>Figure: rolling update status</em></p><p id="8123878e-d572-4fda-b446-381cae919f42" class="">
+</p><figure id="0d75ec83-29c7-4e33-a3f4-8cd309103f68" class="image"><a href="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Untitled%201.png"><img style="width:672px" src="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Untitled%201.png"/></a></figure><p id="6d44b27c-1ac8-41df-b23c-c2226ac6c9e2" class=""><em>Figure: a list of health pods. this list will be updated as pods are down or up</em></p><p id="400ca139-45b4-4929-9a6a-e90bc79eb043" class="">
+</p><p id="af2103d6-00bf-464a-8fad-24397cd0c324" class="">
+</p><h2 id="480a1a0c-ecb7-494b-846d-42598e86a966" class="">Service Discovery</h2><ul id="f7c92c6a-5fa4-4334-b790-b8e6efa40389" class="bulleted-list"><li style="list-style-type:disc">“Service registration is the process of a microservice registering its connection details in a <em>service registry</em> so that other microservices can discover it and connect to it.”</li></ul><ul id="de7203f8-308b-45fe-8565-89bba2287966" class="bulleted-list"><li style="list-style-type:disc">Service discovery is a process one service communicates with the other</li></ul><ul id="297a6315-8f92-4f06-8bed-93dc14cb0e81" class="bulleted-list"><li style="list-style-type:disc">Cluster DNS operates at an address known to every Pod and container in the cluster<ul id="ec2e97a6-c23d-4bb2-850d-3edee3f3c14d" class="bulleted-list"><li style="list-style-type:circle">it is a Kubernetes-native application</li></ul><ul id="1f74d365-6764-45d6-a1c5-b0dd59ca3fca" class="bulleted-list"><li style="list-style-type:circle">implements a controller that constantly watches the API server for a new service (a new app) object to be registered</li></ul></li></ul><ul id="e54a2139-3542-4396-99b0-0e1a997449a5" class="bulleted-list"><li style="list-style-type:disc">Service Registry Behind Scene (Brief, more complicated) <ul id="a65e3024-093c-4cbe-9da8-2c4c8bea77a6" class="bulleted-list"><li style="list-style-type:circle">Cluster DNS helps the first step</li></ul></li></ul><p id="64ad493c-b266-45d9-97d7-7d07f338c561" class="">
+</p><figure id="862b23e5-9e9b-48f3-adcb-cbdab0b935a7" class="image"><a href="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Untitled%202.png"><img style="width:1240px" src="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Untitled%202.png"/></a></figure><p id="09b62986-f153-4d65-8e70-4120b0684304" class="">
+</p><p id="b7771a82-cd85-49c8-be2b-e291362af198" class="">
+</p><h2 id="964ccd4f-cbbf-41a8-83dc-c4783f93141d" class="">Kubernetes Storage</h2><ul id="5211e81a-4f5a-4a22-8d56-fe47f969ebc1" class="bulleted-list"><li style="list-style-type:disc">PersistentVolumes (PV) are how you map external storage onto the cluster</li></ul><ul id="dfd701fe-3080-4b61-91dc-bdc165a37f91" class="bulleted-list"><li style="list-style-type:disc">PersistentVolumeClaims (PVC) are like tickets that authorize applications (Pods) to use a PV.</li></ul><ul id="c741f8b0-1662-4ede-8997-29656331e7b5" class="bulleted-list"><li style="list-style-type:disc">Storage class: external storage provider, such as GCP, AWS, Azure, etc<ul id="7a7c6b72-120e-4c81-8ac6-411f78b27e0c" class="bulleted-list"><li style="list-style-type:circle">“Storage Classes take things to the next level by allowing applications to dynamically request storage. You create a Storage Class object that references a class, or tier, of storage from a storage back-end. Once created, the Storage Class watches the API server for new Persistent Volume Claims that reference the Storage Class. When a matching PVC arrives, the SC dynamically creates the storage and makes it available as a PV that can be mounted as a volume into a Pod (container).”</li></ul></li></ul><p id="65db5953-8928-4f01-b52d-a23db5545972" class="">
+</p><figure id="ff76715f-999d-4242-a1d6-1d53606cad32" class="image"><a href="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Screen_Shot_2023-06-22_at_12.01.53_AM.png"><img style="width:942px" src="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Screen_Shot_2023-06-22_at_12.01.53_AM.png"/></a></figure><p id="4093eed4-df14-4674-8a92-0fb8c5539146" class="">
+</p><h2 id="e76c8120-25b7-466a-b85e-9ecd9a28369b" class="">ConfigMap, StatefulSet, DaemonSet</h2><h3 id="b80904e0-39e1-479c-94e0-2c88627322a3" class="">ConfigMap</h3><ul id="ea227acb-6c69-4b80-9e87-daf6c41a886b" class="bulleted-list"><li style="list-style-type:disc">ConfigMap: separate configuration for different environments and application images, so that the application can be deployed in different environments (e.g. dev, test, production)</li></ul><ul id="76e865c1-dc87-48cd-bff3-2e07c12a9573" class="bulleted-list"><li style="list-style-type:disc">ConfigMaps are typically used to store non-sensitive configuration data such as:<ul id="14f5d47f-6917-4ee7-9bce-1a3c35afb64a" class="bulleted-list"><li style="list-style-type:circle">Environment variable values</li></ul><ul id="f96086f9-5353-4d2e-a8d4-a7eb1f21294f" class="bulleted-list"><li style="list-style-type:circle">Entire configuration files (things like web server configs (like <strong>nginx</strong>) and database configs)</li></ul><ul id="6131f875-57fc-4007-a9ad-31ff8140d702" class="bulleted-list"><li style="list-style-type:circle">Hostnames</li></ul><ul id="14297186-e8c1-4e5a-8909-b393b9044e0b" class="bulleted-list"><li style="list-style-type:circle">Service ports</li></ul><ul id="2f02e44d-cddb-43a3-8a5d-d6182c454556" class="bulleted-list"><li style="list-style-type:circle">Account names</li></ul></li></ul><ul id="1f8319f5-67f3-4ce1-88eb-3add275a6b83" class="bulleted-list"><li style="list-style-type:disc">Internally, it’s a key-value pair<figure id="27e308a5-608f-4ac6-b40f-1e43de426311" class="image"><a href="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Screen_Shot_2023-06-24_at_5.24.28_PM.png"><img style="width:576px" src="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Screen_Shot_2023-06-24_at_5.24.28_PM.png"/></a></figure></li></ul><ul id="16063488-1a47-471f-9878-cef3d2e5cf81" class="bulleted-list"><li style="list-style-type:disc">Kubernetes-native applications can access ConfigMap data directly via the API without needing things like environment variables and volumes</li></ul><p id="13059b55-9124-47f0-8ba2-65bee8ddb1a4" class="">
+</p><h3 id="50468f64-d8f9-4047-a5dc-80bbcaa17429" class="">StatefulSet</h3><ul id="e0370201-cc9a-4f93-b04f-9314d1f2addc" class="bulleted-list"><li style="list-style-type:disc">used for stateful application: e.g. DB, storing users’ authentication token</li></ul><ul id="449de5ed-c5f2-4844-b10d-cd89e273175d" class="bulleted-list"><li style="list-style-type:disc">some features: <ul id="5e95b096-d4cf-4307-820e-507d42ddc0da" class="bulleted-list"><li style="list-style-type:circle">Persistent Pod Names, DNS hostnames, volume bindings<ul id="50d3a1a7-02e7-4c93-9437-954b360dd62e" class="bulleted-list"><li style="list-style-type:square">Pod are named as <code>&lt;StatefulSetName&gt;-&lt;Integer&gt;</code></li></ul><ul id="3b6e5fef-83d3-4d74-8444-77ab5086b217" class="bulleted-list"><li style="list-style-type:square">volume binding: if a pod is gone, a new pod will be launched and attached to the same volume</li></ul><p id="321663a8-8c5c-4042-b9bc-70dc13817b3d" class="">
+</p></li></ul><ul id="833696cc-f977-437a-8b91-82229804803b" class="bulleted-list"><li style="list-style-type:circle">“StatefulSets create one Pod at a time and always wait for previous Pods to be <em>running and ready</em> before creating the next.”<ul id="39591e6a-a685-4755-b8c5-7dcabc756baf" class="bulleted-list"><li style="list-style-type:square">same for scaling, one pod will wait for the other; not same for deleting pod</li></ul><figure id="64f87431-6d03-4ce4-bf10-08b0ade4b0c3" class="image"><a href="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Screen_Shot_2023-06-25_at_6.44.29_PM.png"><img style="width:528px" src="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Screen_Shot_2023-06-25_at_6.44.29_PM.png"/></a></figure></li></ul></li></ul><ul id="f145ec62-5bae-41fd-9562-1dae2dbdd445" class="bulleted-list"><li style="list-style-type:disc">Working Example (using Google <strong>GKE</strong>)<ul id="70d3712c-349d-40fe-ac3e-f13b825fcf01" class="bulleted-list"><li style="list-style-type:circle"><a href="https://github.com/nigelpoulton/TheK8sBook/tree/main/statefulsets">https://github.com/nigelpoulton/TheK8sBook/tree/main/statefulsets</a></li></ul><ul id="97291d62-ee2a-463c-98d7-024900b873a1" class="bulleted-list"><li style="list-style-type:circle">app.yml: have headless services, statefulset definition with volume (PVC)</li></ul><ul id="52f8a401-8dee-4083-9266-30f92633731b" class="bulleted-list"><li style="list-style-type:circle">gcp-sc.yml: use <a href="http://pd.csi.storage.gke.io"><code>pd.csi.storage.gke.io</code></a> as cloud provisioner </li></ul><p id="b6249d5d-764f-43ea-932e-042b0f6585df" class="">each Statefulset will be bounded with one volume  </p><figure id="5fecda76-36ea-48e5-b235-980f020df488" class="image"><a href="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Screen_Shot_2023-06-28_at_9.43.55_PM.png"><img style="width:1822px" src="Kubernetes%20Deep%20Dive%20%E2%80%94%20Practices%20and%20Further%20Notes%204fcdcce720fe46b09d16cdb1d5875f67/Screen_Shot_2023-06-28_at_9.43.55_PM.png"/></a></figure></li></ul><p id="7a3ea209-678a-4cb6-8ffe-f25ce0a3df14" class="">
+</p><h3 id="dff92c08-92fc-4277-99c0-c38f38a88b85" class="">DaemonSet</h3><ul id="43be048d-a358-4292-af2f-1383a9efbe8a" class="bulleted-list"><li style="list-style-type:disc">guarantees to have a pod replica on every single node of a cluster</li></ul><p id="6ca1a063-cd1f-4c7e-b838-6bb016ae3806" class="">
+</p><p id="23eb841f-9389-4ba5-8d2d-b27a64e73bf3" class="">
+</p><h2 id="07af700d-2f1b-44fc-9694-ec717bf77461" class="">Reference</h2><p id="b17a6d3a-9ca3-4393-a7f4-ea3556d5198b" class="">Notes mostly are summarized from or refer to <span style="border-bottom:0.05em solid"><em>Learn Kubernetes: A Deep Dive </em></span><a href="https://www.educative.io/courses/the-kubernetes-course">https://www.educative.io/courses/the-kubernetes-course</a></p><p id="98bcbcec-e08e-4f43-b7e2-ba29a7006192" class="">
+</p><p id="29e27c76-ca8a-40e1-bb89-76a82c980a97" class="">
+</p><p id="7d8b57e6-e0cb-42fc-82ce-1243e39841f6" class="">
+</p></div></article></body></html>
